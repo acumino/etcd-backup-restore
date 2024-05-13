@@ -459,16 +459,25 @@ func (h *HTTPHandler) serveConfig(rw http.ResponseWriter, req *http.Request) {
 		peerURLs := strings.Split(initAdPeerURL.(string), ",")
 		fmt.Printf("PeerURLs: %v\n", peerURLs)
 
+		pus := []string{}
+		cus := []string{}
 		for _, peerURL := range peerURLs {
 			peerURLParts := strings.Split(peerURL, "=")
 			if peerURLParts[0] == podName {
 				config["initial-advertise-peer-urls"] = peerURLParts[1]
 				config["advertise-client-urls"] = peerURLParts[1][:strings.LastIndex(peerURLParts[1], ":")] + ":2379"
-				fmt.Printf("Initial-Advertise-Peer-URLs: %v\n", config["initial-advertise-peer-urls"])
-				fmt.Printf("Advertise-Client-URLs: %v\n", config["advertise-client-urls"])
-				break
+				pus = append(pus, peerURLParts[1])
+				cus = append(cus, peerURLParts[1][:strings.LastIndex(peerURLParts[1], ":")]+":2379")
+				// fmt.Printf("Initial-Advertise-Peer-URLs: %v\n", config["initial-advertise-peer-urls"])
+				// fmt.Printf("Advertise-Client-URLs: %v\n", config["advertise-client-urls"])
+				// break
 			}
 		}
+
+		config["initial-advertise-peer-urls"] = strings.Join(pus, ",")
+		config["advertise-client-urls"] = strings.Join(cus, ",")
+		fmt.Printf("Initial-Advertise-Peer-URLs: %v\n", config["initial-advertise-peer-urls"])
+		fmt.Printf("Advertise-Client-URLs: %v\n", config["advertise-client-urls"])
 	}
 
 	config["initial-cluster"] = getInitialCluster(req.Context(), fmt.Sprint(config["initial-cluster"]), *h.EtcdConnectionConfig, *h.Logger, podName)
